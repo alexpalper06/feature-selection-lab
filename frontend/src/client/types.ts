@@ -13,9 +13,10 @@ export interface DatasetRead {
   num_rows: number;
   target_variables: string[];
   uploaded_at: string;
+  dataset_name: string;
 }
 
-export interface DatasetPreview extends DatasetRead {
+export interface DatasetDetails extends DatasetRead {
   columns: string[];
   rows: Record<string, any>[];
 }

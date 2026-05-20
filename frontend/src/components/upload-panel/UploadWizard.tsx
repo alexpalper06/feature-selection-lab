@@ -1,14 +1,14 @@
 // src/components/datasets/UploadWizard.tsx
 import React, { useState, useCallback } from 'react';
 import { CheckCircle2, ChevronLeft, Database, Target, FileText } from 'lucide-react';
-import Modal from '../ui/Modal';
-import Button from '../ui/Button';
-import Badge from '../ui/Badge';
-import Spinner from '../ui/Spinner';
-import DropZone from './DropZone';
-import PreviewTable from './PreviewTable';
-import { datasetApi } from '../../client/DatasetClient';
-import  type { DatasetRead, FileAnalysisResponse } from '../../client/types'; // Adjust import path as needed
+import Modal from '../ui/Modal.tsx';
+import Button from '../ui/Button.tsx';
+import Badge from '../ui/Badge.tsx';
+import Spinner from '../ui/Spinner.tsx';
+import DropZone from './DropZone.tsx';
+import PreviewTable from '../datasets/PreviewTable.tsx';
+import { datasetApi } from '../../client/DatasetClient.ts';
+import  type { DatasetRead, FileAnalysisResponse } from '../../client/types.ts'; // Adjust import path as needed
 
 const STEP = { FILE_SELECT: 0, CONFIGURE: 1, SUCCESS: 2 } as const;
 

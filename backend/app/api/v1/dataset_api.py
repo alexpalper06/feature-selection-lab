@@ -7,7 +7,7 @@ from app.api.deps import get_session
 from app.schemas.dataset_schema import (
     DatasetRead,
     DatasetUpdate,
-    DatasetPreview,
+    DatasetDetails,
     DatasetCreate,
     FileAnalysisResponse
 )
@@ -55,18 +55,10 @@ def list_datasets(session: Session = Depends(get_session)):
     return dataset_service.get_all_datasets(session)
 
 
-@router.get("/{dataset_id}", response_model=DatasetRead)
-def get_dataset(dataset_id: int, session: Session = Depends(get_session)):
+@router.get("/{dataset_id}", response_model=DatasetDetails)
+async def get_dataset(dataset_id: int, session: Session = Depends(get_session)):
     """Returns database metadata for a single dataset."""
-    return dataset_service.get_dataset(session, dataset_id)
-
-
-@router.get("/{dataset_id}/preview", response_model=DatasetPreview)
-async def preview_dataset(dataset_id: int, session: Session = Depends(get_session)):
-    """
-    Returns information of the dataset and first N rows of an already saved file.
-    """
-    return await dataset_service.get_dataset_preview(session, dataset_id)
+    return await dataset_service.get_dataset_details(session, dataset_id)
 
 
 @router.patch("/{dataset_id}", response_model=DatasetRead)

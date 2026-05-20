@@ -1,11 +1,12 @@
 import asyncio
 from typing import Any, Sequence
 
+from sqlalchemy import true
 from sqlmodel import Session, select
 from fastapi import UploadFile, HTTPException
 
 from app.models.dataset_model import Dataset
-from app.schemas.dataset_schema import DatasetCreate, DatasetUpdate, DatasetPreview, FileAnalysisResponse
+from app.schemas.dataset_schema import DatasetCreate, DatasetUpdate, DatasetDetails, FileAnalysisResponse
 from app.utils.file_utils import save_upload_file, delete_file, load_dataframe
 from app.utils.dataset_utils import extract_shape
 
@@ -14,15 +15,12 @@ PREVIEW_ROWS = 10
 
 async def analyze_uploaded_file(upload_file: UploadFile) -> FileAnalysisResponse:
     """
-    Parses a local file immediately upon selection by the user.
-    Does not save anything to the database. Allows the user to view columns
-    and decide which ones are target variables before committing.
+    Parses a local file immediately upon selection by the user without DB persistence.
+    Allows column inspection and target selection before committing to the storage cluster.
     """
-    # 1 — Temporarily stage file on disk to allow Pandas streaming/reading
-    temp_path = await asyncio.to_thread(save_upload_file, upload_file)
-
     try:
-        df = await asyncio.to_thread(load_dataframe, str(temp_path))
+        # Pass the complete UploadFile object to extract both name extension and content stream
+        df = await asyncio.to_thread(load_dataframe, upload_file)
         num_rows, num_cols = extract_shape(df)
 
         if num_rows == 0 or num_cols == 0:
@@ -30,7 +28,6 @@ async def analyze_uploaded_file(upload_file: UploadFile) -> FileAnalysisResponse
 
         preview_df = df.head(PREVIEW_ROWS)
         columns = list(df.columns)
-        # Obtains a dictionary of column: value for each row
         rows = preview_df.to_dict(orient="records")
 
         return FileAnalysisResponse(
@@ -39,9 +36,10 @@ async def analyze_uploaded_file(upload_file: UploadFile) -> FileAnalysisResponse
             num_rows=num_rows,
             num_cols=num_cols
         )
-    finally:
-        # Always remove the temporary preview file to prevent disk bloat
-        await asyncio.to_thread(delete_file, str(temp_path))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal analysis failure: {str(e)}")
 
 
 async def create_dataset(session: Session, form: DatasetCreate, upload_file: UploadFile) -> Dataset:
@@ -124,19 +122,21 @@ def delete_dataset(session: Session, dataset_id: int) -> None:
     session.commit()
 
 
-async def get_dataset_preview(session: Session, dataset_id: int) -> DatasetPreview:
+async def get_dataset_details(session: Session, dataset_id: int) -> DatasetDetails:
     """Loads a saved file and returns metadata along with preview rows."""
     dataset = get_dataset(session, dataset_id)
 
     df = await asyncio.to_thread(load_dataframe, dataset.path_file)
     preview_df = df.head(PREVIEW_ROWS)
 
-    return DatasetPreview(
+    return DatasetDetails(
         id=dataset.id,
         name=dataset.name,
         num_rows=dataset.num_rows,
         num_cols=dataset.num_cols,
         target_variables=dataset.target_variables,
+        uploaded_at=dataset.uploaded_at,
+        dataset_name=dataset.dataset_name,
         columns=list(df.columns),
-        rows=preview_df.where(preview_df.notna(), None).to_dict(orient="records"),
+        rows=preview_df.to_dict(orient="records"),
     )

@@ -96,9 +96,18 @@ export default function DatasetCard({ dataset, onDelete, onRename }: DatasetCard
                 </button>
               </div>
             ) : (
-              <h3 className="text-sm font-semibold text-text-h truncate group-hover:text-accent transition-colors">
-                {dataset.name}
-              </h3>
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-semibold text-text-h truncate group-hover:text-accent transition-colors">
+                  {dataset.name}
+                </h3>
+                {/* File source identifier */}
+                <p
+                  className="text-[11px] text-text-main/40 font-mono truncate"
+                  title={`Source file: ${dataset.dataset_name}`}
+                >
+                  {dataset.dataset_name}
+                </p>
+              </div>
             )}
           </div>
         </div>

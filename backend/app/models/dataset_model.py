@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON
 from datetime import datetime, timezone
@@ -31,3 +33,7 @@ class Dataset(SQLModel, table=True):
 
     # Auto-set to UTC now when the record is created
     uploaded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    @property
+    def dataset_name(self):
+        return Path(self.path_file).name

@@ -5,7 +5,7 @@ import { ChevronLeft, Target, FileText, CheckCircle } from 'lucide-react';
 import AppLayout from '../components/layout/AppLayout';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
-import DropZone from '../components/datasets/DropZone';
+import DropZone from '../components/upload-panel/DropZone.tsx';
 import PreviewTable from '../components/datasets/PreviewTable';
 import { datasetApi } from '../client/DatasetClient';
 import type { FileAnalysisResponse } from '../client/types';
@@ -121,7 +121,7 @@ export default function DatasetUploadPage(): React.ReactElement {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-h mb-1 flex items-center gap-1"><Target className="w-3 h-3 text-accent" /> Assign Target Classification Vector *</label>
+                <label className="block text-xs font-semibold text-text-h mb-1 flex items-center gap-1"><Target className="w-3 h-3 text-accent" /> Assign Target Attributes *</label>
                 <p className="text-xs text-text-main/50 mb-2">Select features representing discrete targets to isolate them from prediction spaces.</p>
                 <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 bg-code-bg/40 border border-border-main rounded-lg">
                   {analysis.columns.map((col) => {
@@ -141,7 +141,7 @@ export default function DatasetUploadPage(): React.ReactElement {
               </div>
 
               <div className="flex justify-between items-center pt-2 border-t border-border-main">
-                <Button variant="secondary" icon={ChevronLeft} onClick={() => setStep(STEP.FILE_SELECT)}>Change Matrix File</Button>
+                <Button variant="secondary" icon={ChevronLeft} onClick={() => setStep(STEP.FILE_SELECT)}>Change Dataset File</Button>
                 <Button variant="primary" type="submit" disabled={saving || targets.length === 0}>
                   {saving ? 'Persisting to Storage...' : 'Save Dataset'}
                 </Button>
@@ -154,7 +154,7 @@ export default function DatasetUploadPage(): React.ReactElement {
               <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500"><CheckCircle className="w-6 h-6" /></div>
               <div>
                 <h3 className="text-base font-semibold text-text-h">Upload Confirmed</h3>
-                <p className="text-xs text-text-main/50 mt-0.5">The structural matrices have been written to filesystems and registered cleanly.</p>
+                <p className="text-xs text-text-main/50 mt-0.5">The dataset has been written to filesystems and registered cleanly.</p>
               </div>
               <div className="flex gap-2 pt-2">
                 <Button variant="secondary" onClick={() => setStep(STEP.FILE_SELECT)}>Upload Another</Button>

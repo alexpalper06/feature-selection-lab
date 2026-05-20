@@ -36,14 +36,10 @@ class DatasetRead(SQLModel):
     num_rows: int
     target_variables: List[str]
     uploaded_at: datetime
+    dataset_name: str
 
 
-class DatasetPreview(SQLModel):
-    """Returned by GET /datasets/{id}/preview, information + first N rows."""
-    id: int
-    name: str
-    num_rows: int
-    num_cols: int
-    target_variables: List[str]
+class DatasetDetails(DatasetRead) :
+    """Returned by GET /datasets/{id}/, information + first N rows."""
     columns: List[str]
     rows: List[Dict[str, Any]]

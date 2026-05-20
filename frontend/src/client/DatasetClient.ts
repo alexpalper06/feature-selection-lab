@@ -3,7 +3,7 @@ import axiosClient from './AxiosClient';
 import type {
     FileAnalysisResponse,
     DatasetRead,
-    DatasetPreview,
+    DatasetDetails,
     DatasetCreate
 } from './types.ts';
 
@@ -36,13 +36,8 @@ export const datasetApi = {
     return data;
   },
 
-  get: async (id: number): Promise<DatasetRead> => {
-    const { data } = await axiosClient.get<DatasetRead>(`/datasets/${id}`);
-    return data;
-  },
-
-  preview: async (id: number): Promise<DatasetPreview> => {
-    const { data } = await axiosClient.get<DatasetPreview>(`/datasets/${id}/preview`);
+  get: async (id: number): Promise<DatasetDetails> => {
+    const { data } = await axiosClient.get<DatasetDetails>(`/datasets/${id}`);
     return data;
   },
 

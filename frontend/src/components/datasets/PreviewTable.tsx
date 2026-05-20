@@ -19,14 +19,14 @@ export default function PreviewTable({
     <div className="rounded-lg border border-border-main overflow-hidden">
       <div className="overflow-x-auto overflow-y-auto ">
         <table className="w-full text-xs border-collapse">
-          <thead className="sticky top-0 z-10">
+          <thead className="top-0 z-10">
             <tr className="bg-code-bg border-b border-border-main">
               {columns.map((col) => (
                 <th
                   key={col}
                   title={col}
                   className={[
-                    'px-3 py-2.5 text-left font-semibold whitespace-nowrap',
+                    'px-3 py-2.5 text-middle font-semibold whitespace-nowrap',
                     isTarget(col) ? 'text-accent bg-accent-bg' : 'text-text-h',
                   ].join(' ')}
                 >

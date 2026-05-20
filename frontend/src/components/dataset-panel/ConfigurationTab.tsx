@@ -103,7 +103,7 @@ export default function ConfigurationTab({ dataset, onRunCreated }: Configuratio
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
       {/* Run Identification */}
       <div>
         <label className="block text-sm font-medium text-text-h mb-2">Run Name</label>

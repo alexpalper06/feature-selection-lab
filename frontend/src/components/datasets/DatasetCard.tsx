@@ -1,5 +1,6 @@
 // src/components/datasets/DatasetCard.tsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Database, Trash2, Pencil, Check, X, Target, Calendar } from 'lucide-react';
 import Badge from '../ui/Badge';
 import Spinner from '../ui/Spinner';
@@ -13,6 +14,7 @@ interface DatasetCardProps {
 }
 
 export default function DatasetCard({ dataset, onDelete, onRename }: DatasetCardProps): React.ReactElement {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editName, setEditName] = useState<string>(dataset.name);
   const [renaming, setRenaming] = useState<boolean>(false);
@@ -50,8 +52,17 @@ export default function DatasetCard({ dataset, onDelete, onRename }: DatasetCard
     }
   };
 
+  const handleCardClick = (): void => {
+    if (!isEditing && !deleting) {
+      navigate(`/datasets/${dataset.id}`);
+    }
+  };
+
   return (
-    <div className="bg-bg-main border border-border-main rounded-xl p-5 space-y-4 hover:border-accent-border/60 transition-all duration-200 relative group shadow-xs">
+    <div
+      onClick={handleCardClick}
+      className="bg-bg-main border border-border-main rounded-xl p-5 space-y-4 hover:border-accent-border/60 transition-all duration-200 relative group shadow-xs cursor-pointer"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-9 h-9 rounded-lg bg-code-bg border border-border-main flex items-center justify-center text-text-main/60 flex-shrink-0">
@@ -67,11 +78,20 @@ export default function DatasetCard({ dataset, onDelete, onRename }: DatasetCard
                   disabled={renaming}
                   className="w-full text-sm font-semibold text-text-h bg-code-bg border border-accent rounded px-2 py-0.5 focus:outline-none"
                   autoFocus
+                  onClick={(e) => e.stopPropagation()}
                 />
-                <button onClick={commitRename} disabled={renaming} className="p-1 text-emerald-500 hover:bg-emerald-500/10 rounded">
+                <button
+                  onClick={(e) => { e.stopPropagation(); commitRename(); }}
+                  disabled={renaming}
+                  className="p-1 text-emerald-500 hover:bg-emerald-500/10 rounded"
+                >
                   {renaming ? <Spinner /> : <Check className="w-3.5 h-3.5" />}
                 </button>
-                <button onClick={cancelEdit} disabled={renaming} className="p-1 text-red-500 hover:bg-red-500/10 rounded">
+                <button
+                  onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
+                  disabled={renaming}
+                  className="p-1 text-red-500 hover:bg-red-500/10 rounded"
+                >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -85,10 +105,20 @@ export default function DatasetCard({ dataset, onDelete, onRename }: DatasetCard
 
         {!isEditing && (
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={startEdit} disabled={deleting} className="p-1.5 text-text-main/40 hover:text-accent hover:bg-accent-bg rounded-md transition-colors" title="Rename asset">
+            <button
+              onClick={(e) => { e.stopPropagation(); startEdit(); }}
+              disabled={deleting}
+              className="p-1.5 text-text-main/40 hover:text-accent hover:bg-accent-bg rounded-md transition-colors"
+              title="Rename dataset"
+            >
               <Pencil className="w-3.5 h-3.5" />
             </button>
-            <button onClick={commitDelete} disabled={deleting} className="p-1.5 text-text-main/40 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors" title="Delete asset">
+            <button
+              onClick={(e) => { e.stopPropagation(); commitDelete(); }}
+              disabled={deleting}
+              className="p-1.5 text-text-main/40 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+              title="Delete dataset"
+            >
               {deleting ? <Spinner /> : <Trash2 className="w-3.5 h-3.5" />}
             </button>
           </div>

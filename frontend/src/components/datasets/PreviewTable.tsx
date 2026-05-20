@@ -17,7 +17,7 @@ export default function PreviewTable({
 
   return (
     <div className="rounded-lg border border-border-main overflow-hidden">
-      <div className="overflow-x-auto overflow-y-auto max-h-60">
+      <div className="overflow-x-auto overflow-y-auto ">
         <table className="w-full text-xs border-collapse">
           <thead className="sticky top-0 z-10">
             <tr className="bg-code-bg border-b border-border-main">

@@ -1,98 +1,95 @@
 @import "tailwindcss";
 
 @theme {
-  /* Dynamic mapping to Tailwind v4 utility classes */
-  --color-text-main: var(--text);
-  --color-text-h: var(--text-h);
-  --color-bg-main: var(--bg);
-  --color-border-main: var(--border);
-  --color-code-bg: var(--code-bg);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-bg: var(--accent-bg);
-  --color-accent-border: var(--accent-border);
-  --color-social-bg: var(--social-bg);
+    /* Dynamic mapping to Tailwind v4 utility classes */
+    --color-text-main: var(--text);
+    --color-text-h: var(--text-h);
+    --color-bg-main: var(--bg);
+    --color-surface: var(--surface);
+    --color-border-main: var(--border);
+    --color-code-bg: var(--code-bg);
+    --color-accent: var(--accent);
+    --color-accent-hover: var(--accent-hover);
+    --color-accent-bg: var(--accent-bg);
+    --color-accent-border: var(--accent-border);
+    --color-social-bg: var(--social-bg);
 
-  --font-sans: var(--sans);
-  --font-heading: var(--heading);
-  --font-mono: var(--mono);
+    --font-sans: var(--sans);
+    --font-heading: var(--heading);
+    --font-mono: var(--mono);
 }
 
 :root {
-  /* Typography Hierarchy Layout */
-  --sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+    /* Typography Hierarchy Layout */
+    --sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --heading: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
 
-  /* ==========================================
-     LIGHT MODE: Apple HIG / Material Inspired
-     ========================================== */
-  --bg: #ffffff;            /* Pure white base for clean, modern app surfaces */
-  --text: #334155;          /* Slate 700 - Darkened for WCAG AAA compliance */
-  --text-h: #111827;        /* Gray 900 - Stark, high-contrast headings */
-  --border: #e5e5ea;        /* Apple Standard structural divider line */
-  --code-bg: #f4f4f5;       /* Zinc 100 - Neutral, non-distracting code blocks */
+    /* Light mode  */
+    --bg: #f2f2f7; /* Apple like backbround soft gray page canvas */
+    --surface: #ffffff; /* For card and panel surfaces */
+    --text: #334155;
+    --text-h: #111827;
+    --border: #d1d1d6;
+    --code-bg: #ebebf0;
 
-  /* Apple System Blue Interactive Accents */
-  --accent: #007aff;                 /* Apple System Blue - highly recognizable */
-  --accent-hover: #005bb5;           /* Deepened for tactile hover state */
-  --accent-bg: rgba(0, 122, 255, 0.08); /* 8% Opacity for gentle surfaces */
-  --accent-border: rgba(0, 122, 255, 0.25);
 
-  --social-bg: rgba(229, 229, 234, 0.5);
-  --shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --accent: #007aff;
+    --accent-hover: #005bb5;
+    --accent-bg: rgba(0, 122, 255, 0.08);
+    --accent-border: rgba(0, 122, 255, 0.25);
 
-  /* Global Base Settings */
-  font: 18px/1.6 var(--sans);
-  letter-spacing: -0.015em;   /* Slightly tighter for modern Apple-like tracking */
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    --social-bg: rgba(229, 229, 234, 0.5);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+    /* Global Base Settings */
+    font: 18px/1.6 var(--sans);
+    letter-spacing: -0.015em; /* Slightly tighter for modern Apple-like tracking */
+    color-scheme: light dark;
+    color: var(--text);
+    background: var(--bg);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    @media (max-width: 1024px) {
+        font-size: 16px;
+    }
 }
 
 :root.dark {
-    /* ==========================================
-       DARK MODE: Material Design Standard
-       ========================================== */
-    --bg: #121212;          /* Material standard dark (reduces eye strain/OLED smearing) */
-    --text: #cbd5e1;        /* Slate 300 - Brightened for readability against dark bg */
-    --text-h: #f8fafc;      /* Slate 50 - Crisp header font */
-    --border: #27272a;      /* Zinc 800 - Clean, muted grid boundaries */
-    --code-bg: #1e1e1e;     /* Standard VS Code dark surface */
+    /* Dark mode */
 
-    /* Apple Dark Mode Blue Accents */
-    --accent: #0a84ff;                 /* Apple Dark Mode System Blue */
-    --accent-hover: #409cff;           /* Lightened for hover in dark spaces (inverse logic) */
+    --bg: #121212; /* Material standard dark */
+    --surface: #1c1c1e; /* For card and panel surfaces */
+    --text: #cbd5e1;
+    --text-h: #f8fafc;
+    --border: #2c2c2e;
+    --code-bg: #28282c;
+
+    --accent: #0a84ff;
+    --accent-hover: #409cff;
     --accent-bg: rgba(10, 132, 255, 0.15);
     --accent-border: rgba(10, 132, 255, 0.4);
 
     --social-bg: rgba(39, 39, 42, 0.6);
-    --shadow:
-      0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
 }
 
 #social .button-icon {
-  filter: invert(1) brightness(2);
+    filter: invert(1) brightness(2);
 }
 
 /* Application Layout Container */
 #root {
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  background-color: var(--bg);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+    max-width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    border-inline: 1px solid var(--border);
+    background-color: var(--bg);
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
 }

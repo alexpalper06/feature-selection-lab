@@ -1,43 +1,63 @@
-// src/components/layout/Header.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Menu } from 'lucide-react';
 
 export interface BreadcrumbItem {
-  label: string;
-  href?: string;
+    label: string;
+    href?: string;
 }
 
 interface HeaderProps {
-  breadcrumbs?: BreadcrumbItem[];
+    breadcrumbs?: BreadcrumbItem[];
+    isMobile: boolean;
+    onToggle: () => void;
+    isScrolled: boolean;
 }
 
-export default function Header({ breadcrumbs }: HeaderProps): React.ReactElement {
-  const crumbs = breadcrumbs ?? [{ label: 'Dashboard' }];
+export default function Header({ breadcrumbs, onToggle, isMobile, isScrolled }: HeaderProps): React.ReactElement {
+    const crumbs = breadcrumbs ?? [{ label: 'Dashboard' }];
 
-  return (
-    <header className="h-14 bg-bg-main border-b border-border-main flex items-center justify-between px-8 sticky top-0 z-10 flex-shrink-0">
-      <nav className="flex items-center gap-1" aria-label="Breadcrumb">
-        {crumbs.map((crumb, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && (
-              <ChevronRight className="w-3.5 h-3.5 text-text-main/30 flex-shrink-0 mx-0.5" />
+    return (
+        <header
+            className={`h-10 sticky top-0 z-10 flex-shrink-0 flex items-center gap-4 px-6 bg-bg-main/90 backdrop-blur-md transition-all duration-300 ${
+                isScrolled ? 'border-b border-border-main/40 shadow-sm' : 'border-b border-transparent shadow-none'
+            }`}
+        >
+            {isMobile && (
+                <>
+                    <button
+                        onClick={onToggle}
+                        aria-label="Toggle sidebar"
+                        className="p-1.5 rounded-lg text-text-main/50 hover:text-text-h hover:bg-code-bg border
+                                   border-transparent transition-all duration-150 flex-shrink-0 cursor-pointer"
+                    >
+                        <Menu className="w-4.5 h-4.5" />
+                    </button>
+                    <span className="w-px h-5 bg-border-main flex-shrink-0" aria-hidden="true" />
+                </>
             )}
-            {crumb.href ? (
-              <Link
-                to={crumb.href}
-                className="text-sm text-text-main/60 hover:text-accent font-medium transition-colors"
-              >
-                {crumb.label}
-              </Link>
-            ) : (
-              <span className="text-sm font-semibold text-text-h" aria-current="page">
-                {crumb.label}
-              </span>
-            )}
-          </React.Fragment>
-        ))}
-      </nav>
-    </header>
-  );
+
+            <nav className="flex items-center gap-1 min-w-0" aria-label="Breadcrumb">
+                {crumbs.map((crumb, i) => (
+                    <React.Fragment key={i}>
+                        {i > 0 && (
+                            <ChevronRight className="w-3.5 h-3.5 text-text-main/25 flex-shrink-0 mx-0.5" />
+                        )}
+                        {crumb.href ? (
+                            <Link
+                                to={crumb.href}
+                                className="text-sm text-text-main/50 hover:text-accent font-medium transition-colors truncate"
+                            >
+                                {crumb.label}
+                            </Link>
+                        ) : (
+                            <span className="text-sm font-semibold text-text-h truncate" aria-current="page">
+                                {crumb.label}
+                            </span>
+                        )}
+                    </React.Fragment>
+                ))}
+            </nav>
+        </header>
+    );
 }

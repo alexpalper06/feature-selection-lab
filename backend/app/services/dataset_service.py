@@ -1,36 +1,41 @@
 import asyncio
-from typing import Any, Sequence
+from typing import Any, Sequence, Dict
 
+from numpy.distutils.fcompiler import none
 from sqlalchemy import true
 from sqlmodel import Session, select
-from fastapi import UploadFile, HTTPException
+from fastapi import UploadFile, HTTPException, Path
 
 from app.models.dataset_model import Dataset
-from app.schemas.dataset_schema import DatasetCreate, DatasetUpdate, DatasetDetails, FileAnalysisResponse
-from app.utils.file_utils import save_upload_file, delete_file, load_dataframe
-from app.utils.dataset_utils import extract_shape
+from app.schemas.dataset_schema import DatasetCreate, DatasetUpdate, DatasetDetails, FileAnalysisResponse, \
+    ClassDistributionDetails
+from app.utils.file_utils import save_upload_file, delete_file, load_dataframe, sanitize_filename
+from app.utils.dataset_utils import extract_shape, get_class_distribution
 
 PREVIEW_ROWS = 10
 
 
+# https://deepwiki.com/fastapi/sqlmodel
+
 async def analyze_uploaded_file(upload_file: UploadFile) -> FileAnalysisResponse:
     """
     Parses a local file immediately upon selection by the user without DB persistence.
-    Allows column inspection and target selection before committing to the storage cluster.
+    Allows column inspection and target selection before committing to the storage.
     """
     try:
         # Pass the complete UploadFile object to extract both name extension and content stream
+        upload_file.filename = sanitize_filename(upload_file.filename)
         df = await asyncio.to_thread(load_dataframe, upload_file)
         num_rows, num_cols = extract_shape(df)
 
         if num_rows == 0 or num_cols == 0:
             raise HTTPException(status_code=422, detail="Uploaded file is empty or invalid.")
 
-        preview_df = df.head(PREVIEW_ROWS)
         columns = list(df.columns)
-        rows = preview_df.to_dict(orient="records")
+        rows = df.head(PREVIEW_ROWS).to_dict(orient="records")
 
         return FileAnalysisResponse(
+            name=upload_file.filename,
             columns=columns,
             rows=rows,
             num_rows=num_rows,
@@ -42,15 +47,20 @@ async def analyze_uploaded_file(upload_file: UploadFile) -> FileAnalysisResponse
         raise HTTPException(status_code=500, detail=f"Internal analysis failure: {str(e)}")
 
 
-async def create_dataset(session: Session, form: DatasetCreate, upload_file: UploadFile) -> Dataset:
+async def create_dataset(session: Session, form: DatasetCreate) -> Dataset:
     """
     Saves the file permanently and registers the user configuration in the DB.
+    We return the dataset data in order to improve API scalability and separating the concerns from any
+    use a frontend would use. In other words, we standarize the output that way.
     """
-    # 1. Persist physical file permanently
+    # Persist physical file permanently
+    upload_file = form.file
+    # We sanitize the data returned by the client before persisitng
+    upload_file.filename = sanitize_filename(upload_file.filename)
     file_path = await asyncio.to_thread(save_upload_file, upload_file)
 
     try:
-        # 2. Load into memory to verify dimensions match and extract structural info
+        # Load into memory to verify dimensions match and extract structural info
         df = await asyncio.to_thread(load_dataframe, str(file_path))
         num_rows, num_cols = extract_shape(df)
 
@@ -62,7 +72,13 @@ async def create_dataset(session: Session, form: DatasetCreate, upload_file: Upl
                 detail=f"Selected target column(s) {invalid_targets} do not exist in the dataset."
             )
 
-        # 3. Commit data
+        # Obtains class distribution
+        distribution = {}
+        for target in form.target_variables:
+            # Assuming check_class_balance returns Dict(str, Any)
+            distribution[target] = get_class_distribution(df, target)
+
+        # Commit data
         dataset = Dataset(
             name=form.name,
             description=form.description,
@@ -70,6 +86,7 @@ async def create_dataset(session: Session, form: DatasetCreate, upload_file: Upl
             num_rows=num_rows,
             num_cols=num_cols,
             target_variables=form.target_variables,  # Injected from user form parameters
+            class_distribution=distribution,
         )
         session.add(dataset)
         session.commit()
@@ -90,7 +107,7 @@ def get_all_datasets(session: Session) -> Sequence[Dataset]:
 
 
 def get_dataset(session: Session, dataset_id: int) -> Dataset:
-    """Fetch one dataset or raise 404."""
+    """Fetch one dataset."""
     dataset = session.get(Dataset, dataset_id)
     if not dataset:
         raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found.")
@@ -109,13 +126,7 @@ def rename_dataset(session: Session, dataset_id: int, form: DatasetUpdate) -> Da
 
 def delete_dataset(session: Session, dataset_id: int) -> None:
     """Deletes the dataset record AND its physical file on disk."""
-    from app.models.fs_run_model import FSRun
-
     dataset = get_dataset(session, dataset_id)
-
-    runs = session.exec(select(FSRun).where(FSRun.dataset_id == dataset_id)).all()
-    for run in runs:
-        session.delete(run)
 
     delete_file(dataset.path_file)
     session.delete(dataset)
@@ -132,6 +143,7 @@ async def get_dataset_details(session: Session, dataset_id: int) -> DatasetDetai
     return DatasetDetails(
         id=dataset.id,
         name=dataset.name,
+        description=dataset.description,
         num_rows=dataset.num_rows,
         num_cols=dataset.num_cols,
         target_variables=dataset.target_variables,
@@ -139,4 +151,5 @@ async def get_dataset_details(session: Session, dataset_id: int) -> DatasetDetai
         dataset_name=dataset.dataset_name,
         columns=list(df.columns),
         rows=preview_df.to_dict(orient="records"),
+        class_distribution=dataset.class_distribution,
     )

@@ -1,218 +1,253 @@
-import React, { useState } from 'react';
-import { AlertCircle, Play } from 'lucide-react';
+import React, {useState, useEffect} from 'react';
+import {AlertCircle, Play} from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
-import { fsRunApi } from '../../client/FsRunClient';
-import { MethodCategory } from '../../client/types';
-import type { DatasetRead, FSRunCreate } from '../../client/types';
+import Spinner from '../ui/Spinner';
+import {fsRunApi} from '../../client/FsRunClient';
+import type {DatasetRead} from '../../client/types/DatasetTypes.ts';
+import type {FeatureSelectionMethods, FSRunCreate} from "../../client/types/FsRunTypes.ts";
 
 interface ConfigurationTabProps {
-  dataset: DatasetRead;
-  onRunCreated?: () => void;
+    dataset: DatasetRead; // We need the DatasetId in order to execute FS Runs
 }
 
-const METHODS = [
-  { name: 'Chi-Square', category: MethodCategory.FILTER, description: 'Statistical feature selection for classification' },
-  { name: 'RFE', category: MethodCategory.WRAPPER, description: 'Recursive Feature Elimination' },
-  { name: 'Mutual Information', category: MethodCategory.FILTER, description: 'Information-theoretic feature ranking' },
-  { name: 'Forward Selection', category: MethodCategory.WRAPPER, description: 'Iterative forward feature selection' },
-];
+export default function ConfigurationTab({dataset}: ConfigurationTabProps): React.ReactElement {
+    // Methods registry state (fetched from backend)
+    const [methods, setMethods] = useState<FeatureSelectionMethods[]>([]);
+    const [methodsLoading, setMethodsLoading] = useState<boolean>(true);
+    const [methodsError, setMethodsError] = useState<string | null>(null);
 
-const METHOD_PARAMETERS: Record<string, Array<{ name: string; type: string; default: any; label: string }>> = {
-  'Chi-Square': [
-    { name: 'k', type: 'number', default: 10, label: 'Number of features to select' },
-  ],
-  'RFE': [
-    { name: 'k', type: 'number', default: 10, label: 'Number of features to select' },
-    { name: 'step', type: 'number', default: 1, label: 'Number of features to eliminate per iteration' },
-  ],
-  'Mutual Information': [
-    { name: 'k', type: 'number', default: 10, label: 'Number of features to select' },
-  ],
-  'Forward Selection': [
-    { name: 'k', type: 'number', default: 10, label: 'Number of features to select' },
-    { name: 'cv_folds', type: 'number', default: 5, label: 'Cross-validation folds' },
-  ],
-};
+    // Form state
+    const [runName, setRunName] = useState<string>('');
+    const [selectedMethodName, setSelectedMethodName] = useState<string>('');
+    const [selectedTarget, setSelectedTarget] = useState<string>(dataset.target_variables[0] ?? '');
+    const [parameters, setParameters] = useState<Record<string, any>>({});
 
-export default function ConfigurationTab({ dataset, onRunCreated }: ConfigurationTabProps): React.ReactElement {
-  const [runName, setRunName] = useState<string>('');
-  const [selectedMethod, setSelectedMethod] = useState<string>('Chi-Square');
-  const [selectedTarget, setSelectedTarget] = useState<string>(dataset.target_variables[0] || '');
-  const [parameters, setParameters] = useState<Record<string, any>>(
-    METHOD_PARAMETERS['Chi-Square']?.reduce((acc, p) => ({ ...acc, [p.name]: p.default }), {}) || {}
-  );
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false);
+    // Submission state
+    const [submitting, setSubmitting] = useState<boolean>(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<boolean>(false);
 
-  const currentMethod = METHODS.find((m) => m.name === selectedMethod)!;
-  const methodParams = METHOD_PARAMETERS[selectedMethod] || [];
+    // Fetch available FS methods from the backend registry when loading the tab page
+    useEffect(() => {
+        const fetchMethods = async (): Promise<void> => {
+            try {
+                const data = await fsRunApi.getMethods();
+                setMethods(data);
+                if (data.length > 0) {
+                    initMethod(data[0]);
+                }
+            } catch (err: any) {
+                setMethodsError(err.message ?? 'Could not load feature selection methods.');
+            } finally {
+                setMethodsLoading(false);
+            }
+        };
+        fetchMethods();
+    }, []);
 
-  const handleMethodChange = (methodName: string): void => {
-    setSelectedMethod(methodName);
-    const newParams = (METHOD_PARAMETERS[methodName] || []).reduce(
-      (acc, p) => ({ ...acc, [p.name]: p.default }),
-      {}
-    );
-    setParameters(newParams);
-  };
+    // https://www.xjavascript.com/blog/typescript-accumulator/
+    // We use an accumulator to build the dictionary of parameters from a method on the form data and to set its default values
+    // on the parameters that are going to be sent
+    const initMethod = (method: FeatureSelectionMethods): void => {
+        setSelectedMethodName(method.name);
+        setParameters(method.parameters.reduce<Record<string, any>>((accum, param) => (
+            {...accum, [param.name]: param.default}), {})
+        );
+    };
 
-  const handleParameterChange = (paramName: string, value: any): void => {
-    setParameters((prev) => ({ ...prev, [paramName]: value }));
-  };
+    const selectedMethod = methods.find((method) => method.name === selectedMethodName);
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(false);
+    const handleMethodChange = (method: FeatureSelectionMethods): void => {
+        initMethod(method);
+    };
 
-    if (!runName.trim()) {
-      setError('Run name is required');
-      return;
+    const handleParameterChange = (paramName: string, raw_value: string, type: string): void => {
+        const value = type === 'number' ? parseInt(raw_value, 10) : raw_value;
+        setParameters((prev) => ({...prev, [paramName]: value}));
+    };
+
+    const resetForm = (): void => {
+        setRunName('');
+        if (selectedMethod) {
+            setParameters(
+                selectedMethod.parameters.reduce<Record<string, any>>((accum, param) => ({
+                    ...accum,
+                    [param.name]: param.default
+                }), {})
+            );
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+        e.preventDefault();
+        setSubmitError(null);
+        setSuccess(false);
+
+        if (!runName.trim()) {
+            setSubmitError('Run name is required.');
+            return;
+        }
+        if (!selectedTarget) {
+            setSubmitError('Target variable must be selected.');
+            return;
+        }
+        if (!selectedMethod) {
+            setSubmitError('Please select a feature selection method.');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            const payload: FSRunCreate = {
+                name: runName.trim(),
+                method_name: selectedMethod.name,
+                method_category: selectedMethod.category,
+                target_var: selectedTarget,
+                parameters,
+            };
+            await fsRunApi.create(dataset.id, payload);
+            setSuccess(true);
+            resetForm();
+            //setTimeout(() => setSuccess(false), 4000);
+        } catch (err: any) {
+            setSubmitError(err.message ?? 'Failed to submit execution.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // Loading error states for the list of available methods
+    if (methodsLoading) {
+        return (
+            <div className="py-24 flex justify-center">
+                <Spinner/>
+            </div>
+        );
     }
 
-    if (!selectedTarget) {
-      setError('Target variable must be selected');
-      return;
+    if (methodsError) {
+        return (
+            <div
+                className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center gap-3 text-sm max-w-2xl mx-auto">
+                <AlertCircle className="w-5 h-5 flex-shrink-0"/>
+                <p>{methodsError}</p>
+            </div>
+        );
     }
 
-    setLoading(true);
-    try {
-      const payload: FSRunCreate = {
-        name: runName.trim(),
-        method_name: selectedMethod,
-        method_category: currentMethod.method_category,
-        target_var: selectedTarget,
-        parameters,
-      };
+    const isFormValid = runName.trim().length > 0 && !!selectedTarget && !!selectedMethod;
 
-      await fsRunApi.create(dataset.id, payload);
-      setSuccess(true);
-      setRunName('');
-      setParameters(
-        methodParams.reduce((acc, p) => ({ ...acc, [p.name]: p.default }), {})
-      );
-      onRunCreated?.();
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create execution. Backend may not be ready yet.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
-      {/* Run Identification */}
-      <div>
-        <label className="block text-sm font-medium text-text-h mb-2">Run Name</label>
-        <input
-          type="text"
-          value={runName}
-          onChange={(e) => setRunName(e.target.value)}
-          placeholder="e.g., Initial Feature Selection"
-          className="w-full h-9 px-3 text-sm rounded-lg bg-code-bg border border-border-main text-text-h placeholder:text-text-main/30 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-        />
-      </div>
-
-      {/* Target Variable */}
-      <div>
-        <label className="block text-sm font-medium text-text-h mb-2">Target Variable</label>
-        <select
-          value={selectedTarget}
-          onChange={(e) => setSelectedTarget(e.target.value)}
-          className="w-full h-9 px-3 text-sm rounded-lg bg-code-bg border border-border-main text-text-h focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
-        >
-          {dataset.target_variables.map((target) => (
-            <option key={target} value={target}>
-              {target}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Method Selection */}
-      <div>
-        <label className="block text-sm font-medium text-text-h mb-3">Feature Selection Method</label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {METHODS.map((method) => (
-            <button
-              key={method.name}
-              type="button"
-              onClick={() => handleMethodChange(method.name)}
-              className={[
-                'p-3 rounded-lg border-2 text-left transition-all',
-                selectedMethod === method.name
-                  ? 'border-accent bg-accent-bg'
-                  : 'border-border-main bg-code-bg/40 hover:border-accent-border'
-              ].join(' ')}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h4 className="text-sm font-semibold text-text-h">{method.name}</h4>
-                  <p className="text-xs text-text-main/60 mt-1">{method.description}</p>
-                </div>
-                <Badge color={method.category === 'filter' ? 'blue' : 'gray'}>
-                  {method.category}
-                </Badge>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Parameters */}
-      {methodParams.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-text-h mb-3">Parameters</label>
-          <div className="space-y-3 bg-code-bg/40 p-4 rounded-lg border border-border-main">
-            {methodParams.map((param) => (
-              <div key={param.name}>
-                <label className="block text-xs text-text-main/60 mb-1.5">
-                  {param.label}
-                </label>
+            {/* Run Identification */}
+            <div>
+                <label className="block text-sm font-medium text-text-h mb-2">Run Name</label>
                 <input
-                  type={param.type}
-                  value={parameters[param.name]}
-                  onChange={(e) =>
-                    handleParameterChange(
-                      param.name,
-                      param.type === 'number' ? parseInt(e.target.value, 10) : e.target.value
-                    )
-                  }
-                  min="1"
-                  className="w-full h-8 px-3 text-sm rounded bg-code-bg border border-border-main text-text-h focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                    type="text"
+                    value={runName}
+                    onChange={(e) => setRunName(e.target.value)}
+                    placeholder="e.g., Baseline Chi-Square k=10"
+                    className="w-full h-9 px-3 text-sm rounded-lg bg-code-bg border border-border-main text-text-h
+            placeholder:text-text-main/30 focus:outline-none focus:border-accent focus:ring-1
+            focus:ring-accent/30 transition-all"
                 />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
 
-      {/* Messages */}
-      {error && (
-        <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex items-start gap-2 text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <p>{error}</p>
-        </div>
-      )}
+            {/* Target Variable  */}
+            <div>
+                <label className="block text-sm font-medium text-text-h mb-2">Target Variable</label>
+                <select
+                    value={selectedTarget}
+                    onChange={(e) => setSelectedTarget(e.target.value)}
+                    className="w-full h-9 px-3 text-sm rounded-lg bg-code-bg border border-border-main text-text-h
+            focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                >
+                    {dataset.target_variables.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                    ))}
+                </select>
+            </div>
 
-      {success && (
-        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-sm">
-          Execution submitted successfully! Check the History tab for updates.
-        </div>
-      )}
+            {/* Method Selection */}
+            <div>
+                <label className="block text-sm font-medium text-text-h mb-3">Feature Selection Method</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {methods.map((method) => {
+                        const isSelected = selectedMethodName === method.name;
+                        return (
+                            <button
+                                key={method.name}
+                                type="button"
+                                onClick={() => handleMethodChange(method)}
+                                className={['p-3 rounded-lg border-2 text-left transition-all',
+                                    isSelected ? 'border-accent bg-accent-bg'
+                                        : 'border-border-main bg-surface hover:border-accent-border hover:shadow-sm',
+                                ].join(' ')}
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <h4 className="text-sm font-semibold text-text-h">{method.name}</h4>
+                                        <p className="text-xs text-text-main/60 mt-1">{method.description}</p>
+                                    </div>
+                                    <Badge color={method.category === 'filter' ? 'blue' : 'gray'}>
+                                        {method.category}
+                                    </Badge>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
 
-      {/* Submit Button */}
-      <Button
-        variant="primary"
-        icon={Play}
-        loading={loading}
-        disabled={!runName.trim() || !selectedTarget}
-      >
-        Execute Method
-      </Button>
-    </form>
-  );
+            {/* Parameters  */}
+            {selectedMethod && selectedMethod.parameters.length > 0 && (
+                <div>
+                    <label className="block text-sm font-medium text-text-h mb-3">Parameters</label>
+                    <div className="space-y-3 bg-surface p-4 rounded-lg border border-border-main">
+                        {selectedMethod.parameters.map((param) => (
+                            <div key={param.name}>
+                                <label className="block text-xs text-text-main/60 mb-1.5">{param.label}</label>
+                                <input
+                                    type={param.type}
+                                    value={parameters[param.name] ?? param.default}
+                                    onChange={(e) => handleParameterChange(param.name, e.target.value, param.type)}
+                                    min={1}
+                                    className="w-full h-8 px-3 text-sm rounded bg-code-bg border border-border-main text-text-h
+                    focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Feedback messages */}
+            {submitError && (
+                <div
+                    className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex items-start gap-2 text-sm">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5"/>
+                    <p>{submitError}</p>
+                </div>
+            )}
+
+            {success && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-sm">
+                    Execution submitted. check the <span className="font-semibold">History</span> tab to check its status.
+                </div>
+            )}
+
+            {/* Submit */}
+            <Button
+                type="submit"
+                variant="primary"
+                icon={Play}
+                loading={submitting}
+                disabled={!isFormValid || submitting}
+            >
+                Execute Method
+            </Button>
+        </form>
+    );
 }

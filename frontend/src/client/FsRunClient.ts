@@ -1,39 +1,38 @@
-// src/client/DatasetApi.ts
+// src/client/FsRunClient.ts
 import axiosClient from './AxiosClient';
-import type {
-    FSRunCreate,
-    FSRunRead,
-    ComparisonData,
-    MethodCategory
-} from './types.ts';
+import type {FeatureSelectionMethods, FSRunCreate, FSRunRead, FSRunReadDetails} from "./types/FsRunTypes.ts";
 
 export const fsRunApi = {
-  create: async (datasetId: number, params: FSRunCreate): Promise<FSRunRead> => {
-    const { data } = await axiosClient.post<FSRunRead>(`/datasets/${datasetId}/runs`, params);
-    return data;
-  },
 
-  list: async (datasetId: number): Promise<FSRunRead[]> => {
-    const { data } = await axiosClient.get<FSRunRead[]>(`/datasets/${datasetId}/runs`);
-    return data;
-  },
+    getMethods: async (): Promise<FeatureSelectionMethods[]> => {
+        const {data} = await axiosClient.get<FeatureSelectionMethods[]>('/datasets/methods');
+        return data;
+    },
 
-  get: async (datasetId: number, runId: number): Promise<FSRunRead> => {
-    const { data } = await axiosClient.get<FSRunRead>(`/datasets/${datasetId}/runs/${runId}`);
-    return data;
-  },
+    create: async (datasetId: number, params: FSRunCreate): Promise<FSRunRead> => {
+        const {data} = await axiosClient.post<FSRunRead>(`/datasets/${datasetId}/runs`, params);
+        return data;
+    },
 
-  rename: async (datasetId: number, runId: number, name: string): Promise<FSRunRead> => {
-    const { data } = await axiosClient.patch<FSRunRead>(`/datasets/${datasetId}/runs/${runId}`, { name });
-    return data;
-  },
 
-  delete: async (datasetId: number, runId: number): Promise<void> => {
-    await axiosClient.delete(`/datasets/${datasetId}/runs/${runId}`);
-  },
+    list: async (datasetId: number, targetVar?: string): Promise<FSRunRead[]> => {
+        const {data} = await axiosClient.get<FSRunRead[]>(`/datasets/${datasetId}/runs`, {
+            params: targetVar ? {target_var: targetVar} : undefined
+        });
+        return data;
+    },
 
-  compare: async (datasetId: number, runIds: number[]): Promise<ComparisonData> => {
-    const { data } = await axiosClient.post<ComparisonData>(`/datasets/${datasetId}/comparisons`, { run_ids: runIds });
-    return data;
-  }
+    get: async (datasetId: number, runId: number): Promise<FSRunReadDetails> => {
+        const {data} = await axiosClient.get<FSRunReadDetails>(`/datasets/${datasetId}/runs/${runId}`);
+        return data;
+    },
+
+    rename: async (datasetId: number, runId: number, name: string): Promise<FSRunRead> => {
+        const {data} = await axiosClient.patch<FSRunRead>(`/datasets/${datasetId}/runs/${runId}`, {name});
+        return data;
+    },
+
+    delete: async (datasetId: number, runId: number): Promise<void> => {
+        await axiosClient.delete(`/datasets/${datasetId}/runs/${runId}`);
+    },
 };

@@ -13,7 +13,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data/fslabdata
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
@@ -34,6 +34,7 @@ services:
       DB_HOST: ${DB_HOST:-db}
       DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME:-postgres}
+      UPLOAD_DIR: ${UPLOAD_DIR}
     ports:
       - "8000:8000"
     depends_on:
@@ -41,7 +42,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - ./backend/storage:/app/backend/storage
+      - dataset_data:/app/backend/storage
     networks:
       - fslab-network
 
@@ -60,6 +61,7 @@ services:
 
 volumes:
   postgres_data:
+  dataset_data:
 
 networks:
   fslab-network:

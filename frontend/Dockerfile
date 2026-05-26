@@ -15,6 +15,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Ensure the "node" user owns the application files
+RUN chown -R node:node /app
+
 # Build the application as node user
 USER node
 RUN npm run build

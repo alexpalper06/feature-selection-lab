@@ -27,11 +27,10 @@ class Settings(BaseSettings):
         Dynamically construct the connection string.
         Pydantic exposes this automatically as a standard attribute.
         """
-        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-
+        return f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     # Pydantic best practice for environment variable configuration
     model_config = SettingsConfigDict(
-        env_file=ENV_FILE_PATH, 
+        env_file=ENV_FILE_PATH,
         env_file_encoding="utf-8", 
         extra="ignore"
     )
